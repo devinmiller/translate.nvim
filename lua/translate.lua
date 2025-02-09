@@ -1,0 +1,273 @@
+-- local M = {}
+--
+-- local state = {}
+--
+-- local function create_floating_window(config, enter)
+--   if enter == nil then
+--     enter = false
+--   end
+--   -- Create a (scratch) buffer
+--   local buf = vim.api.nvim_create_buf(false, true)
+--
+--   -- Open the floating window
+--   local win = vim.api.nvim_open_win(buf, enter, config)
+--
+--   return { buf = buf, win = win }
+-- end
+--
+-- --- @param lines string[]: The lines of JSON string to be parsed
+-- local parse_json_lines = function(lines)
+--   local results = {}
+--
+--   for _, line in ipairs(lines) do
+--     if line ~= "" and line ~= nil then
+--       local ok, decoded = pcall(vim.json.decode, line)
+--       if ok then
+--         table.insert(results, decoded)
+--       else
+--         vim.notify("Invalid JSON on line: " .. line, vim.log.levels.ERROR)
+--       end
+--     end
+--   end
+--
+--   return results
+-- end
+--
+-- --- Entries in the dictionary tend to be inconsistent and messy, but let's
+-- --- make an effort to ensure consistent formatting
+-- --- @param entries table: Entries to be formatted for displaying in buffer
+-- M.format_entries = function(entries)
+--   local formatted_entries = {}
+--   for i, entry in ipairs(entries) do
+--     -- just add the word to the first line
+--     local header = string.format("# %s", entry["word"])
+--     table.insert(formatted_entries, header)
+--
+--     -- on the next line include the part of speech and hyphenated entry
+--     local sub_header = string.format("**%s**", entry["pos"])
+--     if entry["hyphenation"] and #entry["hyphenation"] > 0 then
+--       sub_header = sub_header .. " " .. entry["hyphenation"][1]
+--     end
+--     table.insert(formatted_entries, sub_header)
+--
+--     -- if noun or adj add the feminine and masiculine forms
+--     if entry["forms"] then
+--       table.insert(formatted_entries, "")
+--       table.insert(formatted_entries, "~~~")
+--       if (entry["pos"] == "noun" or entry["pos"] == "adj") then
+--         -- format forms of nouns and adjectives
+--         for _, v in ipairs(entry["forms"]) do
+--           local form = string.format("*(%s)* %s", table.concat(v["tags"], " "), v["form"])
+--           table.insert(formatted_entries, form)
+--         end
+--       elseif entry["pos"] == "verb" then
+--         -- format forms of verbs
+--         for _, v in ipairs(entry["forms"]) do
+--           -- let's try pulling this info from the conjugation for consistency
+--           if not v["source"] or v["source"] ~= "conjugation" then
+--             local form = string.format("*(%s)* %s", table.concat(v["tags"], " "), v["form"])
+--             table.insert(formatted_entries, form)
+--           end
+--         end
+--       end
+--       table.insert(formatted_entries, "~~~")
+--     end
+--
+--     -- finally, included the definitions buried under senses
+--     if entry["senses"] then
+--       table.insert(formatted_entries, "")
+--       for j, v in ipairs(entry["senses"]) do
+--         local definition = string.format("%i. ", j)
+--         -- get any tags for this definition
+--         if v["tags"] then
+--           definition = definition .. string.format("*%s*", table.concat(v["tags"], " ")) .. " "
+--         end
+--         -- get any synonyms for this definition
+--         if v["synonyms"] then
+--           local synonyms = vim.tbl_map(function(syn)
+--             return syn["word"]
+--           end, v["synonyms"])
+--           definition = definition .. string.format("(%s) ", table.concat(synonyms, ", "))
+--         end
+--         -- build the definition for the word
+--         definition = definition .. table.concat(v["glosses"])
+--         table.insert(formatted_entries, definition)
+--       end
+--     end
+--
+--     if i < #entries then
+--       table.insert(formatted_entries, "")
+--       table.insert(formatted_entries, "-----")
+--       table.insert(formatted_entries, "")
+--     end
+--   end
+--
+--   return formatted_entries
+-- end
+--
+-- --- Try to find the entries in the dictionary that provide the best definitions
+-- --- TODO: Add a check for the "form_of" field that is occasionally present in entries
+-- --- @param entries table: The entries that ripgrep found for the pattern
+-- --- @param pattern string: The pattern that ripgrep for which ripgrep searched
+-- M.find_best_entry = function(entries, pattern)
+--   local matches = {}
+--   for _, entry in ipairs(entries) do
+--     -- the most obvious, check for exact word match
+--     if entry["word"] and entry["word"] == pattern then
+--       table.insert(matches, entry)
+--     end
+--     -- checks if entry has form that matches pattern
+--     local entry_has_form = function(v)
+--       return v["form"] and v["form"] == pattern
+--     end
+--     -- also check matches in possbile forms of a word
+--     if entry["forms"] and vim.tbl_contains(entry["forms"], entry_has_form, { predicate = true }) then
+--       table.insert(matches, entry)
+--     end
+--   end
+--
+--   return matches
+-- end
+--
+-- function M.close_float()
+--   -- If the float is still open, close it
+--   if state.float.win and vim.api.nvim_win_is_valid(state.float.win) then
+--     vim.api.nvim_win_close(state.float.win, true)
+--   end
+--
+--   -- Remove the buffer-local mappings in the main buffer
+--   if state.main_buf_id and vim.api.nvim_buf_is_valid(state.main_buf_id) then
+--     pcall(vim.api.nvim_buf_del_keymap, state.main_buf_id, 'n', '<leader>tw')
+--     pcall(vim.api.nvim_buf_del_keymap, state.main_buf_id, { 'n', 'i' }, '<C-P>')
+--     pcall(vim.api.nvim_buf_del_keymap, state.main_buf_id, { 'n', 'i' }, '<C-N>')
+--   end
+--   state.main_buf_id = nil
+-- end
+--
+-- function M.scroll_up()
+--   -- Only scroll if float is valid
+--   if state.float.win and vim.api.nvim_win_is_valid(state.float.win) then
+--     vim.api.nvim_win_call(state.float.win, function()
+--       vim.cmd([[normal!]] .. [[]])
+--     end)
+--   end
+-- end
+--
+-- function M.scroll_down()
+--   -- Only scroll if float is valid
+--   if state.float.win and vim.api.nvim_win_is_valid(state.float.win) then
+--     vim.api.nvim_win_call(state.float.win, function()
+--       vim.cmd([[normal! ]] .. [[]])
+--     end)
+--   end
+-- end
+--
+-- --- @param entries string[]: A list of dictionary entries
+-- M.display_entries = function(entries)
+--   state.main_buf_id = vim.api.nvim_get_current_buf()
+--
+--   state.float = create_floating_window({
+--     relative = 'cursor',
+--     row = 1,            -- how many lines below the cursor
+--     col = 1,            -- how many columns to the right of the cursor
+--     width = 80,         -- window width
+--     height = 10,        -- window height
+--     style = "minimal",  -- minimal style (no line numbers, statusline, etc.)
+--     border = "rounded", -- add a border : single, double, rounded, etc.
+--   }, false)
+--
+--   -- Create buffer-local mappings (in the main buffer) to close/scroll the float
+--   -- so that these only exist while the float is open
+--   local opts = { silent = true, noremap = true, nowait = true, buffer = state.main_buf_id }
+--
+--   vim.keymap.set('n', '<leader>tw', M.close_float, opts)
+--   vim.keymap.set({ 'n', 'i' }, '<C-P>', M.scroll_up, opts)
+--   vim.keymap.set({ 'n', 'i' }, '<C-N>', M.scroll_down, opts)
+--
+--   -- vim.keymap.set("n", "q", function()
+--   --   vim.api.nvim_win_close(state.float.win, true)
+--   -- end, { buffer = state.float.buf })
+--
+--   -- change buffer type to markdown for nicer formatting
+--   vim.bo[state.float.buf].filetype = "markdown"
+--   -- set the buffer contents to the dictionary entries
+--   vim.api.nvim_buf_set_lines(state.float.buf, 0, -1, false, entries)
+-- end
+--
+-- --- @param pattern string: The pattern to search for in the dictionary
+-- --- @param file string: The dictionary file to use in jsonl format
+-- M.find_entries = function(pattern, file)
+--   -- validate parameters
+--   if pattern == nil or pattern == "" then
+--     vim.notify("No word provided", vim.log.levels.WARN)
+--     return
+--   end
+--   if file == nil or file == "" then
+--     vim.notify("No dictionary provided", vim.log.levels.WARN)
+--   end
+--
+--   local output = {}
+--
+--   -- look for word matches or "form of" matches in the dictionary
+--   for _, v in ipairs({ "word", "form" }) do
+--     -- the command to run to search the dictionary file
+--     local cmd = { "rg", "-w", "--no-heading", "--color=never", string.format('"%s": "%s"', v, pattern), file }
+--
+--     -- run command synchronously
+--     local result = vim.system(cmd, { text = true }):wait()
+--     -- collect the output written to stdout by ripgrep
+--     output = vim.tbl_extend("keep", output, vim.split(result.stdout, "\n"))
+--   end
+--   -- parse json lines to lua tables
+--   local possible_entries = parse_json_lines(output)
+--   -- find the best match in the entries
+--   local matched_entries = M.find_best_entry(possible_entries, pattern)
+--   -- format entries to a more user friendly view
+--   local entries = M.format_entries(matched_entries)
+--   -- finally show the entry
+--   M.display_entries(entries)
+-- end
+--
+-- local function get_visual_selection()
+--   -- Save the current register contents so we don't lose them
+--   local original_reg = vim.fn.getreg('"')
+--   local original_regtype = vim.fn.getregtype('"')
+--
+--   -- Yank the selection into the default register
+--   vim.cmd('normal! ""y')
+--
+--   -- Get the text that was just yanked
+--   local selection = vim.fn.getreg('"')
+--
+--   -- Restore original register contents
+--   vim.fn.setreg('"', original_reg, original_regtype)
+--
+--   return selection
+-- end
+--
+-- local options = {}
+--
+-- M.setup = function(opts)
+--   opts = opts or {}
+--
+--   opts.dict_path = opts.dict_path or vim.fn.stdpath("data")
+--   opts.language = opts.language or "Italian"
+--
+--   opts.dict_file = string.format("%s/kaikki.org-dictionary-%s.jsonl", opts.dict_path, opts.language)
+--
+--   options = opts
+-- end
+--
+-- M.translate = function()
+--   local mode = vim.fn.mode()
+--
+--   if mode == "v" then
+--     local selection = get_visual_selection()
+--     M.find_entries(selection, options.dict_file)
+--   else
+--     local word = vim.fn.expand("<cword>")
+--     M.find_entries(word, options.dict_file)
+--   end
+-- end
+--
+-- return M

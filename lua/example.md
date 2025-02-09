@@ -1,0 +1,15 @@
+argento
+inspirare
+inspìro
+inspiro
+pure
+sebbene
+correre
+corro
+parlato
+pensionato
+indimenticabile
+implicite
+orgogliosa
+orgogliose
+orgoglioso
