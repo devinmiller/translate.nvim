@@ -116,6 +116,7 @@ end
 --- @param pattern string: The pattern that ripgrep for which ripgrep searched
 M.find_matches = function(entries, pattern)
   local matches = {}
+  local forms = {}
   for _, entry in ipairs(entries) do
     -- the most obvious, check for exact word match
     if entry["word"] == pattern then
@@ -123,10 +124,13 @@ M.find_matches = function(entries, pattern)
 
       for _, sense in ipairs(entry["senses"]) do
         for _, form in ipairs(sense["form_of"]) do
-          local results = M.search_dict(form)
-          for _, v in ipairs(results) do
-            if v["word"] == form then
-              table.insert(matches, v)
+          if not vim.tbl_contains(forms, form) then
+            table.insert(forms, form)
+            local results = M.search_dict(form)
+            for _, v in ipairs(results) do
+              if v["word"] == form then
+                table.insert(matches, v)
+              end
             end
           end
         end
@@ -134,7 +138,7 @@ M.find_matches = function(entries, pattern)
     end
   end
 
-  return matches
+  return vim.tbl_values(matches)
 end
 
 ---@return table

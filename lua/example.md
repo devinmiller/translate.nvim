@@ -8,6 +8,7 @@ correre
 corro
 parlato
 pensionato
+date
 indimenticabile
 implicite
 orgogliosa
