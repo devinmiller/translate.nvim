@@ -63,6 +63,7 @@ M.display_entries = function(entries)
     height = 10,        -- window height
     style = "minimal",  -- minimal style (no line numbers, statusline, etc.)
     border = "rounded", -- add a border : single, double, rounded, etc.
+    -- winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder"
   }, false)
 
   -- Create buffer-local mappings (in the main buffer) to close/scroll the float
@@ -81,6 +82,12 @@ M.display_entries = function(entries)
   vim.bo[state.float.buf].filetype = "markdown"
   -- set the buffer contents to the dictionary entries
   vim.api.nvim_buf_set_lines(state.float.buf, 0, -1, false, entries)
+  -- set the background to match the float border
+  -- this is a very specific fix for the catppuccin styling
+  -- TODO: Maybe add an option so this can be done by configuration
+  vim.api.nvim_set_option_value("winhighlight", "Normal:FloatBorder,FloatBorder:FloatBorder", {
+    win = state.float.win
+  })
 end
 
 

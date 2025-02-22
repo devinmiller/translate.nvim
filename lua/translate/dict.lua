@@ -13,14 +13,15 @@ end
 
 M._format_subheader = function(entry, formatted)
   local sub_header = string.format("**%s**", entry["pos"])
-  if entry["hyphenation"] and #entry["hyphenation"] > 0 then
+  -- TODO: ensure hyphen is just a plain string in jq
+  if #entry["hyphenation"] > 0 then
     sub_header = sub_header .. " " .. entry["hyphenation"][1]
   end
   table.insert(formatted, sub_header)
 end
 
 M._format_forms = function(entry, formatted)
-  if entry["forms"] then
+  if #entry["forms"] > 0 then
     table.insert(formatted, "")
     table.insert(formatted, "~~~")
 
@@ -30,11 +31,9 @@ M._format_forms = function(entry, formatted)
 
     for _, value in ipairs(entry["forms"]) do
       if not value["source"] or value["source"] ~= "conjugation" then
-        local key = value["form"]
-        local val = table.concat(value["tags"], " ")
-        longest_key = math.max(longest_key, #key)
-        longest_val = math.max(longest_val, #val)
-        forms[key] = val
+        longest_key = math.max(longest_key, #value["form"])
+        longest_val = math.max(longest_val, #value["tags"])
+        forms[value["form"]] = value["tags"]
       end
     end
 
@@ -50,7 +49,7 @@ M._format_forms = function(entry, formatted)
 end
 
 M._format_definitions = function(entry, formatted)
-  if entry["senses"] then
+  if #entry["senses"] > 0 then
     table.insert(formatted, "")
     for j, v in ipairs(entry["senses"]) do
       local definition = string.format("%i. ", j)
@@ -59,14 +58,11 @@ M._format_definitions = function(entry, formatted)
         definition = definition .. string.format("*%s*", table.concat(v["tags"], " ")) .. " "
       end
       -- get any synonyms for this definition
-      if v["synonyms"] then
-        local synonyms = vim.tbl_map(function(syn)
-          return syn["word"]
-        end, v["synonyms"])
-        definition = definition .. string.format("(%s) ", table.concat(synonyms, ", "))
+      if #v["synonyms"] > 0 then
+        definition = definition .. string.format("(%s) ", table.concat(v["synonyms"], ", "))
       end
       -- build the definition for the word
-      if (v["glosses"]) then
+      if #v["glosses"] > 0 then
         definition = definition .. table.concat(v["glosses"])
         table.insert(formatted, definition)
       end
@@ -122,32 +118,20 @@ M.find_matches = function(entries, pattern)
   local matches = {}
   for _, entry in ipairs(entries) do
     -- the most obvious, check for exact word match
-    if entry["word"] and entry["word"] == pattern then
+    if entry["word"] == pattern then
       table.insert(matches, entry)
-    end
-    -- -- checks if entry has form that matches pattern
-    -- local entry_has_form = function(v)
-    --   return v["form"] and v["form"] == pattern
-    -- end
-    -- -- also check matches in possbile forms of a word
-    -- if entry["forms"] and vim.tbl_contains(entry["forms"], entry_has_form, { predicate = true }) then
-    --   table.insert(matches, entry)
-    -- end
 
-    -- if entry["pos"] == "verb" then
-    for _, sense in ipairs(entry["senses"] or {}) do
-      for _, form in ipairs(sense["form_of"] or {}) do
-        if form["word"] ~= pattern then
-          local results = M.search_dict(form["word"])
+      for _, sense in ipairs(entry["senses"]) do
+        for _, form in ipairs(sense["form_of"]) do
+          local results = M.search_dict(form)
           for _, v in ipairs(results) do
-            if v["word"] and v["word"] == form["word"] then
+            if v["word"] == form then
               table.insert(matches, v)
             end
           end
         end
       end
     end
-    -- end
   end
 
   return matches
@@ -155,27 +139,33 @@ end
 
 ---@return table
 M.search_dict = function(pattern)
-  local entries = {}
+  local jq = require("translate.util.jq")
 
   -- the command to run to search the dictionary file
-  for _, match in ipairs({ "word", }) do
-    local cmd = {
-      -- command to call rg
-      "rg", "-w", "--no-heading", "--color=never",
-      -- pattern being search for
-      string.format('"%s": "%s"', match, pattern),
-      -- file being searched in
-      config.options.dict_file
-    }
-    -- run command synchronously
-    local result = vim.system(cmd, { text = true }):wait()
-    -- split ripgrep stdout into lines by newline
-    local output = vim.split(result.stdout, "\n")
+  local rg_cmd = {
+    -- command to call rg
+    "rg", "-w", "--no-heading", "--color=never",
+    -- pattern being search for
+    string.format('"word": "%s"', pattern),
+    -- file being searched in
+    config.options.dict_file,
+  }
 
-    for _, entry in ipairs(output) do
-      table.insert(entries, entry)
-    end
-  end
+  -- run ripgrip get to quickly search dictionary
+  local rg_result = vim.system(rg_cmd, { text = true }):wait()
+
+  -- the command to format the entries
+  local jq_cmd = {
+    "jq",
+    "-c",
+    jq._build_jq_body()
+  }
+
+  -- feed the ripgrep results to jq
+  local jq_result = vim.system(jq_cmd, { text = true, stdin = rg_result.stdout }):wait()
+  -- capture the out of jq and split by line breaks
+  local entries = vim.split(jq_result.stdout, "\n")
+
   -- parse the lines and return entries
   return M.parse_json(entries)
 end
@@ -190,7 +180,6 @@ M.find_entries = function(pattern)
 
   -- go search the dictionary
   local entries = M.search_dict(pattern)
-
   -- find the best match in the entries
   local matched = M.find_matches(entries, pattern)
   -- format entries and return

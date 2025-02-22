@@ -13,3 +13,4 @@ implicite
 orgogliosa
 orgogliose
 orgoglioso
+paesino
