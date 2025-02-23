@@ -3,6 +3,8 @@ local config = require("translate.config")
 
 local M = {}
 
+--- @param entry table: The entry from the dictionary
+--- @param formatted table: The entry formatted for display
 M._format_header = function(entry, formatted)
   local header = string.format("# %s", entry["word"])
   local padding = string.rep("=", #header)
@@ -11,6 +13,8 @@ M._format_header = function(entry, formatted)
   table.insert(formatted, padding)
 end
 
+--- @param entry table: The entry from the dictionary
+--- @param formatted table: The entry formatted for display
 M._format_subheader = function(entry, formatted)
   local sub_header = string.format("**%s**", entry["pos"])
   -- TODO: ensure hyphen is just a plain string in jq
@@ -20,6 +24,8 @@ M._format_subheader = function(entry, formatted)
   table.insert(formatted, sub_header)
 end
 
+--- @param entry table: The entry from the dictionary
+--- @param formatted table: The entry formatted for display
 M._format_forms = function(entry, formatted)
   if #entry["forms"] > 0 then
     table.insert(formatted, "")
@@ -48,6 +54,8 @@ M._format_forms = function(entry, formatted)
   end
 end
 
+--- @param entry table: The entry from the dictionary
+--- @param formatted table: The entry formatted for display
 M._format_definitions = function(entry, formatted)
   if #entry["senses"] > 0 then
     table.insert(formatted, "")
@@ -116,22 +124,16 @@ end
 --- @param pattern string: The pattern that ripgrep for which ripgrep searched
 M.find_matches = function(entries, pattern)
   local matches = {}
-  local forms = {}
   for _, entry in ipairs(entries) do
     -- the most obvious, check for exact word match
     if entry["word"] == pattern then
       table.insert(matches, entry)
-
-      for _, sense in ipairs(entry["senses"]) do
-        for _, form in ipairs(sense["form_of"]) do
-          if not vim.tbl_contains(forms, form) then
-            table.insert(forms, form)
-            local results = M.search_dict(form)
-            for _, v in ipairs(results) do
-              if v["word"] == form then
-                table.insert(matches, v)
-              end
-            end
+      -- if this word is a form of another word, let's find it
+      for _, form in ipairs(entry["form_of"]) do
+        local results = M.search_dict(form)
+        for _, v in ipairs(results) do
+          if v["word"] == form then
+            table.insert(matches, v)
           end
         end
       end
@@ -141,7 +143,8 @@ M.find_matches = function(entries, pattern)
   return vim.tbl_values(matches)
 end
 
----@return table
+---@param pattern string: The pattern being searched for
+---@return table: The parsed dictionary entries
 M.search_dict = function(pattern)
   local jq = require("translate.util.jq")
 

@@ -33,15 +33,18 @@ M._build_jq_body = function()
       jq_senses_parts["alt_of"],
       jq_senses_parts["related"],
       jq_senses_parts["examples"]
-    )
+    ),
+    -- flattening and deduplicating helps considerable in the code
+    form_of = "form_of: ([.senses[] | .form_of[]? | .word] | unique)"
   }
 
   return string.format(
-    "{word: .word, pos: .pos, %s, %s, %s, %s}",
+    "{word: .word, pos: .pos, %s, %s, %s, %s, %s}",
     jq_parts["hyphenation"],
     jq_parts["related"],
     jq_parts["forms"],
-    jq_parts["senses"])
+    jq_parts["senses"],
+    jq_parts["form_of"])
 end
 
 return M
