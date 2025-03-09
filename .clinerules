@@ -1,0 +1,52 @@
+# translate.nvim Project Rules
+
+## Code Organization
+- Lua modules are organized in a hierarchical structure under `lua/translate/`
+- Utility functions are placed in `lua/translate/util/`
+- Plugin entry point is in `plugin/translate.lua`
+- Main functionality is exposed through `lua/translate/init.lua`
+
+## Coding Patterns
+- Each module exports a table of functions and values (Lua module pattern)
+- Dependencies are injected through `require` statements
+- Configuration is centralized in `config.lua`
+- State is managed through a singleton in `state.lua`
+- Logging is done through the `log.lua` utility
+
+## Naming Conventions
+- Module variables are named `M` (e.g., `local M = {}`)
+- Private functions are prefixed with underscore (e.g., `M._format_header`)
+- Public functions are not prefixed (e.g., `M.translate`)
+- Configuration options use descriptive names (e.g., `window.border`)
+
+## External Dependencies
+- The plugin relies on external tools:
+  - ripgrep for efficient dictionary searching
+  - jq for JSON processing
+- These tools must be installed on the user's system
+
+## Dictionary Data
+- Dictionary data is stored in JSONL format
+- Default location is `vim.fn.stdpath("data")/kaikki.org-dictionary-{language}.jsonl`
+- Data is sourced from https://kaikki.org/dictionary/rawdata.html
+
+## User Interface
+- Translations are displayed in a floating window
+- The window appears near the cursor
+- Window appearance is configurable (size, border, etc.)
+- Content is formatted as Markdown for better readability
+
+## Error Handling
+- Errors are logged using the logging utility
+- Invalid JSON is handled gracefully
+- Missing dictionary files are reported to the user
+
+## Performance Considerations
+- Dictionary files can be large (hundreds of MB)
+- ripgrep is used for efficient searching
+- JQ processes only the matched entries, not the entire dictionary
+
+## Documentation
+- Code is documented with comments
+- Public functions have docstrings
+- Configuration options are documented in the code

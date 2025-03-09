@@ -88,7 +88,7 @@ M.format_entries = function(entries)
     M._format_header(entry, formatted)
     -- on the next line include the part of speech and hyphenated entry
     M._format_subheader(entry, formatted)
-    -- if noun or adj add the feminine and masiculine forms
+    -- if noun or adj add the feminine and masculine forms
     M._format_forms(entry, formatted)
     -- finally, included the definitions buried under senses
     M._format_definitions(entry, formatted)
