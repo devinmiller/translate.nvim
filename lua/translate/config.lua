@@ -14,6 +14,13 @@ M.options = {
   dict_path = vim.fn.stdpath("data"),
   -- Language to translate
   language = "Italian",
+  -- Configuration options for the floating window that is created
+  window = {
+    width = 80,
+    height = 10,
+    border = "rounded",
+    winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder",
+  }
 }
 
 ---@private

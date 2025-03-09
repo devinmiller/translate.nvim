@@ -15,3 +15,5 @@ orgogliosa
 orgogliose
 orgoglioso
 paesino
+sfida
+ricerca

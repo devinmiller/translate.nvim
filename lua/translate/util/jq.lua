@@ -11,6 +11,7 @@ M._build_jq_body = function()
   local jq_senses_parts = {
     glosses = "glosses: (.glosses // [] | .)",
     form_of = "form_of: (.form_of // [] | map(.word))",
+    tags = "tags: (.tags // [])",
     synonyms = "synonyms: (.synonyms // [] | map(.word))",
     alt_of = "alt_of: (.alt_of // [] | map(.word))",
     related = "related: (.related // [] | map(.word))",
@@ -26,9 +27,10 @@ M._build_jq_body = function()
       jq_forms_parts["source"],
       jq_forms_parts["tags"]),
     senses = string.format(
-      "senses: [.senses[] | {%s, %s, %s, %s, %s, %s}]",
+      "senses: [.senses[] | {%s, %s, %s, %s, %s, %s, %s}]",
       jq_senses_parts["glosses"],
       jq_senses_parts["form_of"],
+      jq_senses_parts["tags"],
       jq_senses_parts["synonyms"],
       jq_senses_parts["alt_of"],
       jq_senses_parts["related"],

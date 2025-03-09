@@ -57,13 +57,12 @@ M.display_entries = function(entries)
 
   state.float = create_floating_window({
     relative = 'cursor',
-    row = 1,            -- how many lines below the cursor
-    col = 1,            -- how many columns to the right of the cursor
-    width = 80,         -- window width
-    height = 10,        -- window height
-    style = "minimal",  -- minimal style (no line numbers, statusline, etc.)
-    border = "rounded", -- add a border : single, double, rounded, etc.
-    -- winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder"
+    row = 1,                               -- how many lines below the cursor
+    col = 1,                               -- how many columns to the right of the cursor
+    width = config.options.window.width,   -- window width
+    height = config.options.window.height, -- window height
+    style = "minimal",                     -- minimal style (no line numbers, statusline, etc.)
+    border = config.options.window.border, -- add a border : single, double, rounded, etc.
   }, false)
 
   -- Create buffer-local mappings (in the main buffer) to close/scroll the float

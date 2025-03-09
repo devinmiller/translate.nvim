@@ -62,7 +62,7 @@ M._format_definitions = function(entry, formatted)
     for j, v in ipairs(entry["senses"]) do
       local definition = string.format("%i. ", j)
       -- get any tags for this definition
-      if v["tags"] then
+      if #v["tags"] > 0 then
         definition = definition .. string.format("*%s*", table.concat(v["tags"], " ")) .. " "
       end
       -- get any synonyms for this definition
