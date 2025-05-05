@@ -97,7 +97,6 @@ end
 ---@return table: The parsed dictionary entries
 Translate.search = function(pattern)
   local config = H.get_config()
-  vim.print(config.dict_path)
 
   -- the command to run to search the dictionary file
   local rg_cmd = {
