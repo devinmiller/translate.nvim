@@ -27,7 +27,11 @@ Translate.config = {
     height = 10,
     border = "rounded",
     focusable = false,
-    winblend = 25
+    winblend = 0
+  },
+  mappings = {
+    scroll_down = '<C-N>',
+    scroll_up = '<C-P>'
   }
 }
 
@@ -57,7 +61,7 @@ end
 ---@return table: The parsed dictionary entries
 Translate.translate = function()
   local pattern = vim.fn.expand("<cword>")
-  vim.print(pattern)
+
   -- validate parameters
   if pattern == nil or pattern == "" then
     return { "No word found at cursor" }
@@ -74,7 +78,7 @@ Translate.translate = function()
       table.insert(matches, entry)
       -- if this word is a form of another word, let's find it
       for _, form in ipairs(entry["form_of"]) do
-        local results = H.search(form)
+        local results = Translate.search(form)
         for _, v in ipairs(results) do
           if v["word"] == form then
             table.insert(matches, v)
@@ -153,6 +157,13 @@ end
 
 H.apply_config = function(config)
   Translate.config = config
+
+  local map_scroll = function(lhs, direction)
+    local rhs = function() return H.window_scroll(direction) and '' or lhs end
+    H.map({ 'n', 'i' }, lhs, rhs, { expr = true, desc = 'Scroll window ' .. direction })
+  end
+  map_scroll(config.mappings.scroll_down, 'down')
+  map_scroll(config.mappings.scroll_up, 'up')
 end
 
 H.get_config = function(config)
@@ -370,6 +381,12 @@ H.check_type = function(name, val, ref, allow_nil)
   H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
 end
 
+H.map = function(mode, lhs, rhs, opts)
+  if lhs == '' then return end
+  opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})
+  vim.keymap.set(mode, lhs, rhs, opts)
+end
+
 H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'translate://' .. buf_id .. '/' .. name) end
 
 H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
@@ -395,3 +412,4 @@ H.parse_json = function(lines)
 end
 
 return Translate
+
