@@ -38,6 +38,10 @@ Translate.config = {
 Translate.open = function()
   local win_opts = H.get_config().window
 
+  if H.is_window_open(win_id) then
+    Translate.close()
+  end
+
   -- Open buffer
   local buf_id = H.current.buf_id
   if buf_id == nil or not vim.api.nvim_buf_is_valid(buf_id) then
@@ -224,7 +228,7 @@ H.normalize_window_options = function(win_opts)
 end
 
 H.is_window_open = function()
-  local cur_win_id = H.get_current_map_win()
+  local cur_win_id = H.current.win_id
   return cur_win_id ~= nil and vim.api.nvim_win_is_valid(cur_win_id)
 end
 
@@ -411,4 +415,3 @@ H.parse_json = function(lines)
 end
 
 return Translate
-
